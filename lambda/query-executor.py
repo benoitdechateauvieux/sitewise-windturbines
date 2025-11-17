@@ -67,7 +67,18 @@ def handler(event, context):
         
         logger.info(f"Executing query with parameters: make={make}, location={location}")
         response = sitewise.execute_query(queryStatement=query)
-        return {'statusCode': 200, 'body': json.dumps(response)}
+        
+        # Extract assets from the query response
+        assets = []
+        if 'rows' in response:
+            for row in response['rows']:
+                if 'data' in row and len(row['data']) >= 2:
+                    assets.append({
+                        'asset_id': row['data'][0].get('scalarValue'),
+                        'asset_name': row['data'][1].get('scalarValue')
+                    })
+        
+        return {'statusCode': 200, 'body': json.dumps({'assets': assets})}
     
     except Exception as e:
         logger.error(f"Error executing query: {str(e)}")
