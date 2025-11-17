@@ -145,10 +145,7 @@ export class WindTurbineCdkStack extends cdk.Stack {
     queryExecutor.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['iotsitewise:ExecuteQuery'],
-      resources: [
-        `arn:aws:iotsitewise:${this.region}:${this.account}:time-series/*`,
-        `arn:aws:iotsitewise:${this.region}:${this.account}:asset/*`
-      ]
+      resources: ['*']
     }));
   }
 }
