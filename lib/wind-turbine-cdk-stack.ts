@@ -75,6 +75,14 @@ export class WindTurbineCdkStack extends cdk.Stack {
         assetHierarchies: [],
         assetProperties: [
           {
+            alias: `/${name}/make`,
+            externalId: 'make'
+          },
+          {
+            alias: `/${name}/location`,
+            externalId: 'location'
+          },
+          {
             alias: `/${name}/torque`,
             externalId: 'torque'
           },
@@ -121,6 +129,22 @@ def handler(event, context):
         entries = []
         timestamp = int(time.time())
 
+        entries.append({
+            'entryId': f'{asset_name}-make-{timestamp}',
+            'propertyAlias': f'/{asset_name}/make',
+            'propertyValues': [{
+                'value': {'stringValue': 'Amazon'},
+                'timestamp': {'timeInSeconds': timestamp}
+            }]
+        })
+        entries.append({
+            'entryId': f'{asset_name}-location-{timestamp}',
+            'propertyAlias': f'/{asset_name}/location',
+            'propertyValues': [{
+                'value': {'stringValue': 'Renton'},
+                'timestamp': {'timeInSeconds': timestamp}
+            }]
+        })
         entries.append({
             'entryId': f'{asset_name}-torque-{timestamp}',
             'propertyAlias': f'/{asset_name}/torque',
@@ -179,5 +203,89 @@ def handler(event, context):
       schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
       targets: [new targets.LambdaFunction(measurementLambda)]
     });
+
+    // Query Lambda function
+    const queryLambda = new lambda.Function(this, 'QueryLambda', {
+      runtime: lambda.Runtime.PYTHON_3_9,
+      handler: 'index.handler',
+      timeout: cdk.Duration.seconds(30),
+      code: lambda.Code.fromInline(`
+import boto3
+import json
+
+def handler(event, context):
+    sitewise = boto3.client('iotsitewise')
+    
+    make = event.get('make', 'Amazon')
+    location = event.get('location', 'Renton')
+    asset_ids = event.get('asset_ids', [
+        '0a03ab28-bb1f-4125-b24d-13f0d374588f',
+        'c4254007-0949-4834-a303-299fa1bd76e9',
+        'a4c82e98-5694-4fb0-848b-54681842ccbe',
+        '051f7ab7-da8c-45d9-b4af-7a9854b4b109'
+    ])
+    
+    asset_ids_str = "', '".join(asset_ids)
+    
+    query = f'''
+    SELECT
+      asset_id,
+      asset_name
+    FROM
+      asset
+    WHERE asset_id IN (
+        SELECT asset_id
+        FROM latest_value_time_series
+        WHERE SUBSTR(property_alias, '[^/]+$') = 'location'
+        AND string_value = 'Renton'
+    )
+    AND asset_id IN (
+        SELECT asset_id
+        FROM latest_value_time_series
+        WHERE SUBSTR(property_alias, '[^/]+$') = 'make'
+        AND string_value = 'Amazon'
+    )
+    AND (
+        asset_id IN (
+            SELECT asset_id
+            FROM latest_value_time_series
+            WHERE SUBSTR(property_alias, '[^/]+$') = 'rpm'
+            AND double_value > 25
+        )
+        OR asset_id IN (
+            SELECT asset_id
+            FROM latest_value_time_series
+            WHERE SUBSTR(property_alias, '[^/]+$') = 'torque'
+            AND double_value > 300
+        )
+        OR (
+            asset_id IN (
+                SELECT asset_id
+                FROM latest_value_time_series
+                WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_speed'
+                AND double_value > 15
+            )
+            AND asset_id IN (
+                SELECT asset_id
+                FROM latest_value_time_series
+                WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_direction'
+                AND double_value > 100
+            )
+        )
+    )
+    ORDER BY asset_name
+    '''
+    
+    response = sitewise.execute_query(queryStatement=query)
+    return {'statusCode': 200, 'body': json.dumps(response)}
+      `)
+    });
+
+    // Grant SiteWise query permissions to Lambda
+    queryLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['iotsitewise:ExecuteQuery'],
+      resources: ['*']
+    }));
   }
 }
