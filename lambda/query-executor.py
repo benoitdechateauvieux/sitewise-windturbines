@@ -78,8 +78,8 @@ def handler(event, context):
                         'asset_name': row['data'][1].get('scalarValue')
                     })
         
-        return {'statusCode': 200, 'body': json.dumps({'assets': assets})}
+        return {'assets': assets}
     
     except Exception as e:
         logger.error(f"Error executing query: {str(e)}")
-        return {'statusCode': 500, 'body': json.dumps({'error': str(e)})}
+        return {'error': str(e)}
