@@ -110,10 +110,7 @@ export class WindTurbineCdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset('lambda'),
       environment: {
         ASSET_MODEL_ID: windTurbineModel.attrAssetModelId,
-        TURBINE_001_NAME: assets[0].assetName,
-        TURBINE_002_NAME: assets[1].assetName,
-        TURBINE_003_NAME: assets[2].assetName,
-        TURBINE_004_NAME: assets[3].assetName
+        TURBINE_NAMES: JSON.stringify(assets.map(asset => asset.assetName))
       }
     });
 

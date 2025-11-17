@@ -12,12 +12,7 @@ def handler(event, context):
     try:
         client = boto3.client('iotsitewise')
         
-        asset_names = [
-            os.environ['TURBINE_001_NAME'],
-            os.environ['TURBINE_002_NAME'],
-            os.environ['TURBINE_003_NAME'],
-            os.environ['TURBINE_004_NAME']
-        ]
+        asset_names = json.loads(os.environ['TURBINE_NAMES'])
         
         
         for asset_name in asset_names:
