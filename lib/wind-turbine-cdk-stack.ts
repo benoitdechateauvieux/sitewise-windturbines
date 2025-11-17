@@ -115,7 +115,7 @@ import time
 import os
 
 def handler(event, context):
-    client = boto3.client('iotsitewise', region_name='us-east-1')
+    client = boto3.client('iotsitewise')
     
     asset_names = [
         os.environ['TURBINE_001_NAME'],
@@ -218,14 +218,10 @@ def handler(event, context):
     
     make = event.get('make', 'Amazon')
     location = event.get('location', 'Renton')
-    asset_ids = event.get('asset_ids', [
-        '0a03ab28-bb1f-4125-b24d-13f0d374588f',
-        'c4254007-0949-4834-a303-299fa1bd76e9',
-        'a4c82e98-5694-4fb0-848b-54681842ccbe',
-        '051f7ab7-da8c-45d9-b4af-7a9854b4b109'
-    ])
-    
-    asset_ids_str = "', '".join(asset_ids)
+    rpm_threshold = event.get('rpm_threshold', 25)
+    torque_threshold = event.get('torque_threshold', 300)
+    wind_speed_threshold = event.get('wind_speed_threshold', 15)
+    wind_direction_threshold = event.get('wind_direction_threshold', 100)
     
     query = f'''
     SELECT
@@ -237,39 +233,39 @@ def handler(event, context):
         SELECT asset_id
         FROM latest_value_time_series
         WHERE SUBSTR(property_alias, '[^/]+$') = 'location'
-        AND string_value = 'Renton'
+        AND string_value = '{location}'
     )
     AND asset_id IN (
         SELECT asset_id
         FROM latest_value_time_series
         WHERE SUBSTR(property_alias, '[^/]+$') = 'make'
-        AND string_value = 'Amazon'
+        AND string_value = '{make}'
     )
     AND (
         asset_id IN (
             SELECT asset_id
             FROM latest_value_time_series
             WHERE SUBSTR(property_alias, '[^/]+$') = 'rpm'
-            AND double_value > 25
+            AND double_value > {rpm_threshold}
         )
         OR asset_id IN (
             SELECT asset_id
             FROM latest_value_time_series
             WHERE SUBSTR(property_alias, '[^/]+$') = 'torque'
-            AND double_value > 300
+            AND double_value > {torque_threshold}
         )
         OR (
             asset_id IN (
                 SELECT asset_id
                 FROM latest_value_time_series
                 WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_speed'
-                AND double_value > 15
+                AND double_value > {wind_speed_threshold}
             )
             AND asset_id IN (
                 SELECT asset_id
                 FROM latest_value_time_series
                 WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_direction'
-                AND double_value > 100
+                AND double_value > {wind_direction_threshold}
             )
         )
     )
