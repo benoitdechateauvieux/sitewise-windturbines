@@ -25,39 +25,39 @@ def handler(event, context):
         WHERE asset_id IN (
             SELECT asset_id
             FROM latest_value_time_series
-            WHERE SUBSTR(property_alias, '[^/]+$') = 'location'
+            WHERE property_alias LIKE '%/location'
             AND string_value = '{location}'
         )
         AND asset_id IN (
             SELECT asset_id
             FROM latest_value_time_series
-            WHERE SUBSTR(property_alias, '[^/]+$') = 'make'
+            WHERE property_alias LIKE '%/make'
             AND string_value = '{make}'
         )
         AND (
             asset_id IN (
                 SELECT asset_id
                 FROM latest_value_time_series
-                WHERE SUBSTR(property_alias, '[^/]+$') = 'rpm'
+                WHERE property_alias LIKE '%/rpm'
                 AND double_value > {rpm_threshold}
             )
             OR asset_id IN (
                 SELECT asset_id
                 FROM latest_value_time_series
-                WHERE SUBSTR(property_alias, '[^/]+$') = 'torque'
+                WHERE property_alias LIKE '%/torque'
                 AND double_value > {torque_threshold}
             )
             OR (
                 asset_id IN (
                     SELECT asset_id
                     FROM latest_value_time_series
-                    WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_speed'
+                    WHERE property_alias LIKE '%/wind_speed'
                     AND double_value > {wind_speed_threshold}
                 )
                 AND asset_id IN (
                     SELECT asset_id
                     FROM latest_value_time_series
-                    WHERE SUBSTR(property_alias, '[^/]+$') = 'wind_direction'
+                    WHERE property_alias LIKE '%/wind_direction'
                     AND double_value > {wind_direction_threshold}
                 )
             )
