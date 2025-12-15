@@ -69,7 +69,11 @@ def handler(event, context):
             })
                 
             response = client.batch_put_asset_property_value(entries=entries)
-            logger.info(f"Successfully sent {len(entries)} measurements for {asset_name}")
+            if response['errorEntries']['totalCount'] > 0:
+                logger.error(f"Error sending measurements: {response}")
+                raise Exception(f"Error sending measurements: {response}")
+            else:
+                logger.info(f"Successfully sent {len(entries)} measurements for {asset_name}")
     
     except Exception as e:
         logger.error(f"Error sending measurements: {str(e)}")
