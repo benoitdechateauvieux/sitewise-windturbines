@@ -118,10 +118,7 @@ export class WindTurbineCdkStack extends cdk.Stack {
     measurementSender.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['iotsitewise:BatchPutAssetPropertyValue'],
-      resources: [
-        `arn:aws:iotsitewise:${this.region}:${this.account}:asset/*`,
-        `arn:aws:iotsitewise:${this.region}:${this.account}:asset-model/${windTurbineModel.attrAssetModelId}`
-      ]
+      resources: ['*']
     }));
 
     // EventBridge rule to trigger every minute
